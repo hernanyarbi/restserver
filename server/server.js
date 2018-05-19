@@ -1,45 +1,21 @@
 require('./config/config');
 
-let express = require('express');
-let app = express();
+const express = require('express');
+const mongoose = require('mongoose');
+
+const app = express();
 const bodyParser = require('body-parser');
  
-app.get('/usuario', function (req, res) {
-  res.json('Get User');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(require('./routes/user'));
+
+mongoose.connect('mongodb://localhost:27017/cafe', (err, res) => {
+    if(err) throw err;
+
+    console.log('Base de datos corriendo');
 })
- 
-app.post('/usuario', function (req, res) {
-  res.json({
-      person: req.body
-  })
-})
- 
-app.put('/usuario/:id', function (req, res) {
-    if(req.params.id){
-        res.json({
-            id:req.params.id
-        })
-    }else{
-        res.status(400).json({
-            ok: false,
-            msg: 'debe ingresar un id'
-        })
-    }
-})
- 
-app.delete('/usuario/:id', function (req, res) {
-    if(req.params.id){
-        res.json({
-            id:req.params.id
-        })
-    }else{
-        res.status(400).json({
-            ok: false,
-            msg: 'debe ingresar un id'
-        })
-    }
-})
- 
+
 app.listen(process.env.PORT, () => {
     console.log('Puerto 3000');
 });
