@@ -10,9 +10,9 @@ app.get('/usuario', function (req, res) {
     desde = Number(desde);
     let limite = req.query.limite || 5;
     limite = Number(limite);
-    Users.find({})
+    Users.find( {estado : true})
         .skip(desde)
-        .limit(5)
+        .limit(limite)
         .exec((err, users) => {
             if (err) {
                 return res.status(400).json({
@@ -20,9 +20,12 @@ app.get('/usuario', function (req, res) {
                     err
                 })
             }
-            res.json({
-                ok: true,
-                users
+            Users.count( {estado : true}, (err, count) => {
+                res.json({
+                    ok: true,
+                    users,
+                    count
+                })
             })
         })
 
@@ -55,12 +58,6 @@ app.post('/usuario', function (req, res) {
 app.put('/usuario/:id', function (req, res) {
     let id = req.params.id;
     let body = _.pick(req.body, ['nombre', 'email', 'img', 'role', 'estado']);
-
-
-
-
-
-
     Users.findByIdAndUpdate(id, body, { new: true, runValidators: true }, (err, userDB) => {
         if (err) {
             return res.status(400).json({
@@ -77,16 +74,27 @@ app.put('/usuario/:id', function (req, res) {
 })
 
 app.delete('/usuario/:id', function (req, res) {
-    if (req.params.id) {
+    let id = req.params.id;
+    //Users.findByIdAndRemove(id, (err, user) => {
+    Users.findByIdAndUpdate(id, {estado : false}, {new: true}, (err, user) => {
+        if(err){
+            res.status(400).json({
+                ok: false,
+                err
+            })
+        }else if (!user){
+            res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no encontrado'
+                }
+            })
+        }
         res.json({
-            id: req.params.id
+            ok: true,
+            user
         })
-    } else {
-        res.status(400).json({
-            ok: false,
-            msg: 'debe ingresar un id'
-        })
-    }
+    })
 })
 
 module.exports = app;
