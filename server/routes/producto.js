@@ -12,7 +12,7 @@ app.get('/products', verifyToken, (req, res) => {
     Product.find({ disponible: true })
         .skip(desde)
         .limit(limite)
-        .populate('user', 'nombre email')
+        .populate('usuario', 'nombre email')
         .populate('categoria')
         .exec((err, products) => {
             if (err) {
@@ -36,7 +36,31 @@ app.get('/products', verifyToken, (req, res) => {
 
 app.get('/products/:id', verifyToken, (req, res) => {
     let id = req.params.id;
-    Product.findById(id, (err, product) => {
+    Product.findById(id)
+        .populate('usuario', 'nombre email')
+        .populate('categoria')
+        .exec((err, product) => {
+            if (err) {
+                return res.status(500)
+                    .json({
+                        ok: false,
+                        err
+                    });
+            }
+
+            res.json({
+                ok: true,
+                product
+            });
+        });
+});
+
+app.get('/products/search/:term', verifyToken, (req, res) => {
+    let term = req.params.term;
+    let regx = new RegExp(term, 'i');
+    Product.find({ nombre: regx })
+    .populate('categoria')
+    .exec((err, products) => {
         if (err) {
             return res.status(500)
                 .json({
@@ -45,10 +69,13 @@ app.get('/products/:id', verifyToken, (req, res) => {
                 });
         }
 
-        res.json({
-            ok: true,
-            product
-        });
+        Product.count({ disponible: true }, (err, count) => {
+            res.json({
+                ok: true,
+                products,
+                count
+            })
+        })
     });
 });
 
@@ -62,7 +89,7 @@ app.post('/products', verifyToken, (req, res) => {
         descripcion: body.descripcion,
         disponible: body.disponible,
         categoria: body.categoria,
-        usuario: body.usuario
+        usuario: req.user._id
     });
 
     product.save((err, product) => {
@@ -73,16 +100,50 @@ app.post('/products', verifyToken, (req, res) => {
                     err
                 });
         }
-
         res.json({
             ok: true,
             product
         });
     });
-
-
 });
 
+app.put('/products/:id', verifyToken, (req, res) => {
+    let id = req.params.id;
+    let body = req.body;
 
+    Product.findByIdAndUpdate(id, body, { new: true, runValidators: true },
+        (err, product) => {
+            if (err) {
+                return res.status(500)
+                    .json({
+                        ok: false,
+                        err
+                    });
+            }
+            res.json({
+                ok: true,
+                product
+            })
+        });
+});
+
+app.delete('/products/:id', verifyToken, (req, res) => {
+    let id = req.params.id;
+
+    Product.findByIdAndUpdate(id, { disponible: false }, { new: true, runValidators: true },
+        (err, product) => {
+            if (err) {
+                return res.status(500)
+                    .json({
+                        ok: false,
+                        err
+                    });
+            }
+            res.json({
+                ok: true,
+                product
+            })
+        });
+});
 
 module.exports = app;
